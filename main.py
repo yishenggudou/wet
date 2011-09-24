@@ -2,7 +2,7 @@
 #coding: utf8
 import conf
 from lib import *
-from time import sleep, localtime
+from time import sleep, gmtime
 from pub2all import pub2all
 
 def twitter2all():
@@ -26,10 +26,10 @@ def feeds2all():
     if lasttimes is None:
         lasttimes = {}
         
-    for url in conf.feeds:
+    for format_, url in conf.feeds:
         lasttime = lasttimes.get(url, None)
         if lasttime is None:
-            lasttimes[url] = localtime()
+            lasttimes[url] = gmtime()
             dumpto('rss_lasttimes', lasttimes)
             continue
         
@@ -37,7 +37,9 @@ def feeds2all():
         maxtime = lasttime
         
         for status, publishtime in statuses:
+            status = format_ % status
             print publishtime, status
+
             if pub2all(status):
                 if maxtime < publishtime:
                     maxtime = publishtime
