@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 #coding: utf8
+import os
+import sys
+if '__file__' in globals():
+    path = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(path)
 import conf
 from lib import *
 from time import sleep, gmtime

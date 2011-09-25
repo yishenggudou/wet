@@ -1,72 +1,58 @@
 #coding: utf8
 
-import sys
-sys.path.insert(0, '..')
-from bc import BC
 from lib import *
+from urlfetch import fetch, setcookielist2cookiestring
 import re
-import urllib
-import pycurl
 shorten_re = re.compile(r'''(http://t\.co/\w+)''')
 
-class Twitter(BC):
+class Twitter(object):
     
     def __init__(self, username, password):
         self.username = username
         self.password = password
-        self.cookie_file = '/dev/null'
-        BC.__init__(self)
-        self.reset()
-    
-    def reset(self):
-        b = self.b
-        c = self.c
-        b.truncate()
-        c.reset()
-        c.setopt(pycurl.WRITEFUNCTION, b.write)
-        return b,c
+        self.cookies = ''
         
     def login(self):
-        b, c = self.reset()
-        c.setopt(pycurl.COOKIEJAR, self.cookie_file)
-        c.setopt(pycurl.URL, "https://mobile.twitter.com/session/new")
-        c.setopt(pycurl.REFERER, 'http://mobile.twitter.com/')
-        c.setopt(pycurl.USERAGENT, 'Opera/9.60')
-        c.setopt(pycurl.FOLLOWLOCATION, True)
-        c.perform()
-        m = re.search('''name="authenticity_token" .*?value="([^"]+?)"''', b.getvalue())
-        self.authenticity_token = m.group(1)
-        print self.authenticity_token
+        response = fetch(
+            "https://mobile.twitter.com/session/new",
+            headers = {
+                'Referer': 'http://mobile.twitter.com/',
+            }
+        )
+        self.authenticity_token = re.search(
+            '''name="authenticity_token" .*?value="([^"]+?)"''',
+            response.body
+        )
+        #print self.authenticity_token
         
-        b, c = self.reset()
-        c.setopt(pycurl.COOKIEJAR, self.cookie_file)
-        c.setopt(pycurl.URL, "https://mobile.twitter.com/session")
-        c.setopt(pycurl.REFERER, "https://mobile.twitter.com/session/new")
-        c.setopt(pycurl.USERAGENT, 'Opera/9.60')
-        c.setopt(pycurl.FOLLOWLOCATION, True)
-        c.setopt(pycurl.POST, True)
-        c.setopt(pycurl.POSTFIELDS, urllib.urlencode({
-            'authenticity_token': self.authenticity_token,
-            'username': self.username,
-            'password': self.password,
-        }))
-        c.perform()
-        return b.getvalue()
+        response =fetch(
+            "https://mobile.twitter.com/session",
+            data = {
+                'authenticity_token': self.authenticity_token,
+                'username': self.username,
+                'password': self.password,
+            },
+            headers = {
+                'Referer': "https://mobile.twitter.com/session/new",
+            }
+        )
+        set_cookie = response.msg.getheaders('Set-Cookie')
+        self.cookies = etcookielist2cookiestring(set_cookie)
+        return response
         
     def update(self, status):
-        b, c = self.reset()
-        c.setopt(pycurl.COOKIEJAR, self.cookie_file)
-        c.setopt(pycurl.URL, "http://mobile.twitter.com/")
-        c.setopt(pycurl.REFERER, "http://mobile.twitter.com/")
-        c.setopt(pycurl.USERAGENT, 'Opera/9.60')
-        c.setopt(pycurl.POST, True)
-        c.setopt(pycurl.FOLLOWLOCATION, True)
-        c.setopt(pycurl.POSTFIELDS, urllib.urlencode({
-            'authenticity_token': self.authenticity_token,
-            'tweet[text]': status,
-        }))
-        c.perform()
-        return b.getvalue()
+        response = fetch(
+            "http://mobile.twitter.com/",
+            data = {
+                'authenticity_token': self.authenticity_token,
+                'tweet[text]': status,
+            },
+            headers = {
+                'Cookie': self.cookies,
+                'Referer': "http://mobile.twitter.com/",
+            }
+        )
+        return response
 
 
 def pub2twitter(username, password, status):
@@ -116,6 +102,3 @@ def get_twitter_status(username, prevtime=None):
     
     return statuses
 
-
-if __name__ == '__main__':
-    print get_twitter_status('lyxint')

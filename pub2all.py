@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 #coding: utf8
 
+import os
+import sys
+if '__file__' in globals():
+    path = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(path)
 from lib import *
 
 def pub2all(status):
