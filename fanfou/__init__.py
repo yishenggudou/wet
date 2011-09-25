@@ -1,68 +1,64 @@
 #coding: utf8
-import sys
-sys.path.insert(0, '..')
-from bc import BC
-import re
-import urllib
-import pycurl
 
-class Fanfou(BC):
+from urlfetch import fetch, setcookielist2cookiestring
+import re
+
+class Fanfou(object):
     
     def __init__(self, username, password):
         self.username = username
         self.password = password
-        self.cookie_file = '/dev/null'
-        BC.__init__(self)
-        self.reset()
+        self.cookies = ''
         
     def login(self):
-        b, c = self.reset()
-        c.setopt(pycurl.URL, "http://m.fanfou.com/")
-        c.setopt(pycurl.REFERER, 'http://m.fanfou.com/')
-        c.perform()
-        data = b.getvalue()
-        token = re.search('''name="token".*?value="(.*?)"''', data).group(1)
+        response = fetch(
+            "http://m.fanfou.com/"
+        )
+        token = re.search('''name="token".*?value="(.*?)"''', response.body).group(1)
         
-        b, c = self.reset()
-        c.setopt(pycurl.COOKIEJAR, self.cookie_file)
-        c.setopt(pycurl.URL, "http://m.fanfou.com/home")
-        c.setopt(pycurl.REFERER, 'http://m.fanfou.com/')
-        c.setopt(pycurl.POST, True)
-        c.setopt(pycurl.POSTFIELDS, urllib.urlencode({
-            'loginname': self.username,
-            'loginpass': self.password,
-            'action': 'login',
-            'token' : token,
-            'auto_login': 'on',
-        }))
-        c.perform()
-        return b.getvalue()
+        response = fetch(
+            "http://m.fanfou.com/",
+            data = {
+                'loginname': self.username,
+                'loginpass': self.password,
+                'action': 'login',
+                'token': token,
+                'auto_login': 'on',
+            },
+            headers = {
+                "Referer": "http://m.fanfou.com/",
+            }
+        )
+        set_cookie = response.msg.getheaders('Set-Cookie')
+        self.cookies = setcookielist2cookiestring(set_cookie)
+        return response.body
 
     def update(self, status):
-        b, c = self.reset()
-        c.setopt(pycurl.COOKIEJAR, self.cookie_file)
-        c.setopt(pycurl.URL, "http://m.fanfou.com/home")
-        c.setopt(pycurl.REFERER, 'http://m.fanfou.com/home')
-        c.perform()
-        data = b.getvalue()
-        token = re.search('''name="token".*?value="(.*?)"''', data).group(1)
-        
-        b, c = self.reset()
-        c.setopt(pycurl.COOKIEJAR, self.cookie_file)
-        c.setopt(pycurl.URL, "http://m.fanfou.com/home")
-        c.setopt(pycurl.REFERER, 'http://m.fanfou.com/home')
-        c.setopt(pycurl.POST, True)
-        c.setopt(pycurl.POSTFIELDS, urllib.urlencode({
-            'content': status,
-            'token' : token,
-            'action': 'msg.post',
-        }))
-        c.perform()
-        return b.getvalue()
+        response = fetch(
+            "http://m.fanfou.com/home",
+            headers = {
+                'Cookie': self.cookies,
+                'Referer': "http://m.fanfou.com/home",
+            }
+        )
+        token = re.search('''name="token".*?value="(.*?)"''', response.body).group(1)
+        response = fetch(
+            "http://m.fanfou.com/",
+            data = {
+                'content': status,
+                'token': token,
+                'action': 'msg.post',
+            },
+            headers = {
+                'Cookie': self.cookies,
+                'Referer': "http://m.fanfou.com/home",
+            }
+        )
+        return response.body
 
 
 def pub2fanfou(username, password, status):
     fanfou = Fanfou(username, password)
     fanfou.login()
-    return fanfou.update(status)
+    fanfou.update(status)
 
