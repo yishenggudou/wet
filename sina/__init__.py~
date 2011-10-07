@@ -6,5 +6,6 @@ def pub2sina(status):
 def get_sina_status():
     from lib import get_api
     o = get_api()
-    return o.user_timeline(count=20, page=1)
+    print dir(o)
+    return o.user_timeline(count=10, page=1)
 

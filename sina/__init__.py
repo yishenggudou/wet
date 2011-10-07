@@ -7,5 +7,5 @@ def get_sina_status():
     from lib import get_api
     o = get_api()
     print dir(o)
-    return o.user_timeline(count=20, page=1)
+    return o.user_timeline(count=10, page=1)
 
