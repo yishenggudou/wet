@@ -4,4 +4,4 @@ def pub2qq(status):
     o.tweet.add(status)
 
 if __name__ == "__main__":
-    pub2qq(u'tt....test')
+    pub2qq(u'test')
