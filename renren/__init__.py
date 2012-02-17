@@ -22,7 +22,14 @@ class Renren(BC):
         self.cookie_file = '/dev/null'
         BC.__init__(self)
         self.reset()
-        
+       
+
+    def get_status(self,id_='230312078'):
+        import urllib2,re
+        url = 'http://3g.renren.com/profile.do?id=%s' %id_
+        html = urllib2.urlopen(url).read()
+        status = re.findall('\</td\>\<td\>\<p\>([\s\S]*?)\<img',html)[0]
+        return  status
     def login(self):
         b, c = self.reset()
         c.setopt(pycurl.COOKIEJAR, self.cookie_file)
@@ -45,7 +52,9 @@ class Renren(BC):
         c.setopt(pycurl.REFERER, 'http://status.renren.com/ajaxproxy.htm')
         c.perform()
         return b.getvalue()
-        
+
+   
+
     def comment(self, guest_id, msg):
         b, c = self.reset()
         c.setopt(pycurl.URL, self.comment_action)
@@ -131,3 +140,6 @@ def pub2renren(username, password, status):
     renren.login()
     renren.update(status)
 
+if __name__ == '__main__':
+    renren = Renren('username', 'password')
+    print renren.get_status()
